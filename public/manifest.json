@@ -1,0 +1,17 @@
+{
+  "name": "給与計算アプリ",
+  "short_name": "給与計算",
+  "description": "アルバイトの給与を簡単計算。特別手当や時間帯アップなど複雑な給与ルールにも対応したアプリです。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any 192x192 512x512",
+      "purpose": "any"
+    }
+  ]
+}
