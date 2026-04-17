@@ -34,7 +34,14 @@ export default function App() {
   };
 
   const [workDate, setWorkDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [baseWage, setBaseWage] = useState<string>('1000');
+  const [baseWage, setBaseWage] = useState<string>(() => {
+    return localStorage.getItem('payroll_base_wage') || '1000';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('payroll_base_wage', baseWage);
+  }, [baseWage]);
+
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('18:00');
   const [breakType, setBreakType] = useState<'minutes' | 'range'>('minutes');
