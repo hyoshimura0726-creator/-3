@@ -11,6 +11,34 @@ type CustomRule = {
   endTime?: string;
 };
 
+function useLocalState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item !== null) {
+        // Handle migration for plain string baseWage
+        if (typeof defaultValue === 'string' && !item.startsWith('"') && !item.startsWith('{') && !item.startsWith('[')) {
+            return item as unknown as T;
+        }
+        return JSON.parse(item);
+      }
+    } catch (e) {
+      console.warn('Error reading localStorage', e);
+    }
+    return defaultValue;
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, typeof state === 'string' ? state : JSON.stringify(state));
+    } catch (e) {
+      console.warn('Error setting localStorage', e);
+    }
+  }, [key, state]);
+
+  return [state, setState];
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'calc' | 'monthly'>('calc');
   const [records, setRecords] = useState<Record<string, { totalPay: number, workedMins: number }>>({});
@@ -34,31 +62,24 @@ export default function App() {
   };
 
   const [workDate, setWorkDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [baseWage, setBaseWage] = useState<string>(() => {
-    return localStorage.getItem('payroll_base_wage') || '1000';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('payroll_base_wage', baseWage);
-  }, [baseWage]);
-
-  const [startTime, setStartTime] = useState<string>('09:00');
-  const [endTime, setEndTime] = useState<string>('18:00');
-  const [breakType, setBreakType] = useState<'minutes' | 'range'>('minutes');
-  const [breakTime, setBreakTime] = useState<string>('60');
-  const [breakStartTime, setBreakStartTime] = useState<string>('12:00');
-  const [breakEndTime, setBreakEndTime] = useState<string>('13:00');
+  const [baseWage, setBaseWage] = useLocalState<string>('payroll_base_wage', '1000');
+  const [startTime, setStartTime] = useLocalState<string>('payroll_startTime', '09:00');
+  const [endTime, setEndTime] = useLocalState<string>('payroll_endTime', '18:00');
+  const [breakType, setBreakType] = useLocalState<'minutes' | 'range'>('payroll_breakType', 'minutes');
+  const [breakTime, setBreakTime] = useLocalState<string>('payroll_breakTime', '60');
+  const [breakStartTime, setBreakStartTime] = useLocalState<string>('payroll_breakStartTime', '12:00');
+  const [breakEndTime, setBreakEndTime] = useLocalState<string>('payroll_breakEndTime', '13:00');
 
   // Custom Rules State
-  const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [overtimeThreshold, setOvertimeThreshold] = useState<string>('8');
-  const [overtimeMultiplier, setOvertimeMultiplier] = useState<string>('1.25');
-  const [lateNightStart, setLateNightStart] = useState<string>('22:00');
-  const [lateNightEnd, setLateNightEnd] = useState<string>('05:00');
-  const [lateNightMultiplier, setLateNightMultiplier] = useState<string>('1.25');
-  const [overlapMultiplier, setOverlapMultiplier] = useState<string>('1.5');
+  const [showSettings, setShowSettings] = useLocalState<boolean>('payroll_showSettings', false);
+  const [overtimeThreshold, setOvertimeThreshold] = useLocalState<string>('payroll_overtimeThreshold', '8');
+  const [overtimeMultiplier, setOvertimeMultiplier] = useLocalState<string>('payroll_overtimeMultiplier', '1.25');
+  const [lateNightStart, setLateNightStart] = useLocalState<string>('payroll_lateNightStart', '22:00');
+  const [lateNightEnd, setLateNightEnd] = useLocalState<string>('payroll_lateNightEnd', '05:00');
+  const [lateNightMultiplier, setLateNightMultiplier] = useLocalState<string>('payroll_lateNightMultiplier', '1.25');
+  const [overlapMultiplier, setOverlapMultiplier] = useLocalState<string>('payroll_overlapMultiplier', '1.5');
 
-  const [customRules, setCustomRules] = useState<CustomRule[]>([]);
+  const [customRules, setCustomRules] = useLocalState<CustomRule[]>('payroll_customRules', []);
 
   const addCustomRule = () => {
     setCustomRules([...customRules, { id: Date.now().toString(), name: '新規ルール', type: 'fixed', value: '0', startTime: '05:00', endTime: '09:00' }]);
@@ -250,6 +271,7 @@ export default function App() {
 
   const saveRecord = () => {
     if (!result) return;
+    if (!window.confirm('保存しますか？')) return;
     const newRecords = {
       ...records,
       [workDate]: {
